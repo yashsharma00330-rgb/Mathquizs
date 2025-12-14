@@ -3,180 +3,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Advanced Math Quiz</title>
-
-<!-- jsPDF for PDF Result -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
+<title>6-Level Math Quiz</title>
 <style>
-:root{--bg:#f4f6f9;--card:#fff;--text:#333;--pri:#4CAF50}
-.dark{--bg:#121212;--card:#1e1e1e;--text:#f5f5f5}
-body{margin:0;font-family:Arial;background:var(--bg);color:var(--text)}
-header{background:linear-gradient(135deg,#4CAF50,#2e8b57);color:#fff;text-align:center;padding:25px}
-nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;background:#222;padding:10px}
-nav button{background:var(--pri);border:none;color:#fff;padding:8px 12px;border-radius:5px}
-section{padding:20px;max-width:1000px;margin:auto}
-.card{background:var(--card);padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 4px 8px rgba(0,0,0,.2)}
-button{cursor:pointer}
-.hidden{display:none}
-iframe{width:100%;height:200px;border-radius:10px}
+body{font-family:Arial,sans-serif;background:#f4f6f9;color:#333;margin:0;padding:0}
+header{background:#4CAF50;color:white;text-align:center;padding:25px}
+section{padding:20px;max-width:800px;margin:auto}
+.card{background:white;padding:20px;border-radius:10px;margin-bottom:20px;box-shadow:0 4px 8px rgba(0,0,0,0.1)}
+input,button{padding:10px;margin-top:10px;font-size:1rem}
+button{cursor:pointer;background:#4CAF50;color:white;border:none;border-radius:5px}
+button:hover{background:#388e3c}
+#message{font-weight:bold;margin-top:15px}
+#levelDisplay,#score,#correct,#wrong,#timer{font-weight:bold}
+.leaderboard{margin-top:20px;padding:10px;border:1px solid #ccc;border-radius:5px;background:#fafafa;}
 </style>
 </head>
 <body>
 
 <header>
-<h1>Advanced Math Quiz 🧮</h1>
-<p>Adaptive Levels – Easy → Medium → Hard</p>
+<h1>6-Level Math Quiz 🧮</h1>
+<p>Leaderboard & Timer</p>
 </header>
 
-<nav>
-<button onclick="toggleDark()">🌙 Dark</button>
-<button onclick="pauseGame()">⏸ Pause</button>
-<button onclick="restart()">🔁 Restart</button>
-<button onclick="openAdmin()">👨‍🏫 Admin Panel</button>
-</nav>
-
-<!-- Login -->
 <section id="login" class="card">
 <h2>Enter Your Name</h2>
-<input id="playerName" placeholder="Your Name" style="width:100%;padding:10px;">
+<input id="playerName" placeholder="Your Name" style="width:100%;">
 <button onclick="startGame()">Start Quiz</button>
 </section>
 
-<!-- Game -->
-<section id="game" class="hidden">
-<div class="card">
+<section id="game" class="card" style="display:none;">
 <h3>Player: <span id="player"></span></h3>
-<h4>Level: <span id="levelDisplay">1</span></h4>
+<h4>Level: <span id="levelDisplay">1</span> | Timer: <span id="timer">15</span>s</h4>
 <p id="questionText"></p>
 <input type="number" id="answerInput" placeholder="Enter answer">
 <button onclick="submitAnswer()">Submit</button>
-<p>Score: <span id="score">0</span></p>
-<p>Correct: <span id="correct">0</span> | Wrong: <span id="wrong">0</span></p>
-<h4>Video Explanation</h4>
-<iframe id="video"></iframe>
-<button onclick="downloadResult()">📄 Download PDF Result</button>
-</div>
+<p id="message"></p>
+<p>Score: <span id="score">0</span> | Correct: <span id="correct">0</span> | Wrong: <span id="wrong">0</span></p>
 </section>
 
-<!-- Admin Panel -->
-<section id="admin" class="card hidden">
-<h2>👨‍🏫 Admin Panel</h2>
-<input id="aq" placeholder="Question">
-<input id="a1" placeholder="Option 1">
-<input id="a2" placeholder="Option 2">
-<input id="a3" placeholder="Option 3">
-<input id="a4" placeholder="Option 4">
-<input id="ac" placeholder="Correct option index (0-3)">
-<input id="av" placeholder="YouTube Video Link">
-<button onclick="addQuestion()">➕ Add Question</button>
+<section id="leaderboardSection" class="card" style="display:none;">
+<h2>🏆 Leaderboard</h2>
+<div id="leaderboard" class="leaderboard"></div>
+<button onclick="restartGame()">Restart Game</button>
 </section>
 
 <script>
-// Level-wise questions
-let levels = [
-  // Level 1
-  [
-    {q:"2 + 3 = ?", a:5, v:"https://www.youtube.com/embed/d0yGdNEWdn0"},
-    {q:"1 + 4 = ?", a:5, v:"https://www.youtube.com/embed/d0yGdNEWdn0"},
-    {q:"3 + 2 = ?", a:5, v:"https://www.youtube.com/embed/d0yGdNEWdn0"}
-  ],
-  // Level 2
-  [
-    {q:"12 + 15 = ?", a:27, v:"https://www.youtube.com/embed/2Z9nGzR3rV0"},
-    {q:"30 - 14 = ?", a:16, v:"https://www.youtube.com/embed/2Z9nGzR3rV0"},
-    {q:"20 + 18 = ?", a:38, v:"https://www.youtube.com/embed/2Z9nGzR3rV0"}
-  ],
-  // Level 3
-  [
-    {q:"6 x 7 = ?", a:42, v:"https://www.youtube.com/embed/2Z9nGzR3rV0"},
-    {q:"12 ÷ 4 = ?", a:3, v:"https://www.youtube.com/embed/2Z9nGzR3rV0"},
-    {q:"9 x 9 = ?", a:81, v:"https://www.youtube.com/embed/2Z9nGzR3rV0"}
-  ]
-];
-
-let currentLevel = 0;
-let currentQIndex = 0;
+// Game Variables
+let currentLevel = 1;
+let questionCount = 0;
+let totalQuestions = 30;
 let score = 0;
 let correct = 0;
 let wrong = 0;
 let playerNameText = "";
-let paused = false;
+let leaderboard = [];
+let timer = 15;
+let timerInterval;
+let currentAnswer;
 
+// Start Game
 function startGame(){
   playerNameText = document.getElementById("playerName").value || "Player";
   document.getElementById("player").innerText = playerNameText;
-  document.getElementById("login").classList.add("hidden");
-  document.getElementById("game").classList.remove("hidden");
-  loadQuestion();
+  document.getElementById("login").style.display = "none";
+  document.getElementById("game").style.display = "block";
+  score=0; correct=0; wrong=0; currentLevel=1; questionCount=0;
+  updateStats();
+  generateQuestion();
 }
 
-function loadQuestion(){
-  let levelQs = levels[currentLevel];
-  if(currentQIndex >= levelQs.length){
-    currentLevel++;
-    currentQIndex = 0;
-    if(currentLevel >= levels.length){
-      alert("Congratulations! All levels completed.\nScore: "+score);
-      currentLevel=0; score=0; correct=0; wrong=0;
-    }
-    levelQs = levels[currentLevel];
-  }
-  document.getElementById("levelDisplay").innerText = currentLevel+1;
-  document.getElementById("questionText").innerText = levelQs[currentQIndex].q;
-  document.getElementById("video").src = levelQs[currentQIndex].v;
-  document.getElementById("answerInput").value="";
-}
+// Generate Random Question
+function generateQuestion(){
+  clearInterval(timerInterval);
+  timer=15;
+  document.getElementById("timer").innerText = timer;
 
-function submitAnswer(){
-  if(paused) return;
-  let userAnswer = Number(document.getElementById("answerInput").value);
-  let currentQ = levels[currentLevel][currentQIndex];
-  if(userAnswer === currentQ.a){
-    score += 10; correct++;
-    alert("Correct!");
+  let num1, num2, operator;
+  if(currentLevel <= 2){
+    num1=Math.floor(Math.random()*10)+1;
+    num2=Math.floor(Math.random()*10)+1;
+    operator=['+','-'][Math.floor(Math.random()*2)];
+  } else if(currentLevel <=4){
+    num1=Math.floor(Math.random()*20)+1;
+    num2=Math.floor(Math.random()*20)+1;
+    operator=['+','-','x','÷'][Math.floor(Math.random()*4)];
   } else{
-    wrong++;
-    alert("Wrong! Correct answer: "+currentQ.a);
+    num1=Math.floor(Math.random()*50)+10;
+    num2=Math.floor(Math.random()*50)+1;
+    operator=['+','-','x','÷'][Math.floor(Math.random()*4)];
   }
-  document.getElementById("score").innerText = score;
-  document.getElementById("correct").innerText = correct;
-  document.getElementById("wrong").innerText = wrong;
-  currentQIndex++;
-  loadQuestion();
+
+  switch(operator){
+    case '+': currentAnswer=num1+num2; break;
+    case '-': currentAnswer=num1-num2; break;
+    case 'x': currentAnswer=num1*num2; break;
+    case '÷': currentAnswer=Math.floor(num1/num2); break;
+  }
+
+  document.getElementById("questionText").innerText=`${num1} ${operator} ${num2} = ?`;
+  document.getElementById("answerInput").value="";
+  document.getElementById("message").innerText="";
+
+  // Timer
+  timerInterval = setInterval(()=>{
+    timer--;
+    document.getElementById("timer").innerText=timer;
+    if(timer<=0){
+      clearInterval(timerInterval);
+      wrong++; questionCount++;
+      document.getElementById("message").style.color="red";
+      document.getElementById("message").innerText=`Time's up! Answer: ${currentAnswer}`;
+      nextQuestion();
+    }
+  },1000);
 }
 
-// PDF Result
-function downloadResult(){
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF();
-  pdf.text("Student: "+playerNameText,10,10);
-  pdf.text("Score: "+score,10,20);
-  pdf.text("Correct Answers: "+correct,10,30);
-  pdf.text("Wrong Answers: "+wrong,10,40);
-  pdf.save("ResultCard.pdf");
+// Submit Answer
+function submitAnswer(){
+  let userAnswer=Number(document.getElementById("answerInput").value);
+  clearInterval(timerInterval);
+  if(userAnswer===currentAnswer){
+    score+=10; correct++; 
+    document.getElementById("message").style.color="green";
+    document.getElementById("message").innerText="Correct!";
+  } else {
+    wrong++;
+    document.getElementById("message").style.color="red";
+    document.getElementById("message").innerText=`Wrong! Answer: ${currentAnswer}`;
+  }
+  questionCount++;
+  updateStats();
+  setTimeout(nextQuestion,800);
 }
 
-// Dark Mode
-function toggleDark(){document.body.classList.toggle("dark");}
-
-// Pause
-function pauseGame(){paused = !paused; alert(paused?"Game Paused":"Game Resumed");}
-
-// Restart
-function restart(){location.reload();}
-
-// Admin Panel
-function openAdmin(){document.getElementById("admin").classList.toggle("hidden");}
-function addQuestion(){
-  let q = aq.value;
-  let opts = [a1.value,a2.value,a3.value,a4.value];
-  let ans = Number(ac.value);
-  let vid = av.value;
-  if(!q || !opts[ans]){ alert("Enter correct question & answer"); return; }
-  levels[currentLevel].push({q:q,a:ans,v:vid});
-  alert("Question added to current level!");
+// Next Question / Level Up
+function nextQuestion(){
+  if(questionCount>=totalQuestions){
+    endGame();
+    return;
+  }
+  if(questionCount%5===0 && currentLevel<6) currentLevel++;
+  document.getElementById("levelDisplay").innerText=currentLevel;
+  generateQuestion();
 }
+
+// Update Stats
+function updateStats(){
+  document.getElementById("score").innerText=score;
+  document.getElementById("correct").innerText=correct;
+  document.getElementById("wrong").innerText=wrong;
+}
+
+// End Game
+function endGame(){
+  leaderboard.push({name:playerNameText,score:score});
+  leaderboard.sort((a,b)=>b.score-a.score);
+  displayLeaderboard();
+  document.getElementById("game").style.display="none";
+  document.getElementById("leaderboardSection").style.display="block";
+}
+
+// Display Leaderboard
+function displayLeaderboard(){
+  let lbDiv=document.getElementById("leaderboard");
+  lbDiv.innerHTML="";
+  leaderboard.slice(0,10).forEach((player,i)=>{
+    lbDiv.innerHTML+=`<p>${i+1}. ${player.name}: ${player.score} pts</p>`;
+  });
+}
+
+// Restart Game
+function restartGame(){
+  clearInterval(timerInterval);
+  currentLevel=1; questionCount=0; score=0; correct=0; wrong=0;
+  document.getElementById("playerName").value="";
+  document.getElementById("leaderboardSection").style.display="none";
+  document.getElementById("login").style.display="block";
+}
+
+// Enter key support
+document.getElementById("answerInput").addEventListener("keyup",function(e){
+  if(e.key==="Enter") submitAnswer();
+});
 </script>
 
 </body>
